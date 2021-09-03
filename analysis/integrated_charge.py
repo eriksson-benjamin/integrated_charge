@@ -19,7 +19,7 @@ import scipy.optimize as optimize
 class Adq14():
     def __init__(self, tof_edges, fuel_config):
         # Set charge bins
-        self.s1_charge_edges = np.arange(0, 1E6, 0.2E4)
+        self.s1_charge_edges = np.arange(0, 1E6, .2E4)
         self.s1_charge_centres = get_bin_centres(self.s1_charge_edges)
         
         self.s2_charge_edges = np.arange(0, 2E6, 0.2E4)
@@ -72,6 +72,8 @@ class Adq14():
         elif t_ratio > 0.02 and t_ratio < 0.7: return 'DT'
         elif t_ratio > 0.8: return 'TT'
         else: return 'Unknown'
+        
+
         
     def slice_tof(self, times, charge, s1, s2):
         # sliced_charges  = np.zeros(len(tof_edges) - 1)
@@ -134,12 +136,15 @@ class Adq14():
     
     def save_data(self, file_name):
         to_pickle = {'s1 charge':self.s1_q,
-                     's1 bin edges':self.s1_charge_edges,
-                     's1 bin centres':self.s1_charge_centres,
+                     's1 charge edges':self.s1_charge_edges,
+                     's1 charge centres':self.s1_charge_centres,
                      's2 charge':self.s2_q,
-                     's2 bin edges':self.s2_charge_edges,
-                     's2 bin centres':self.s2_charge_centres,
-                     'analysed shots':self.analysed_shots}
+                     's2 charge edges':self.s2_charge_edges,
+                     's2 charge centres':self.s2_charge_centres,
+                     'tof edges':self.tof_edges,
+                     'tof centres':self.tof_centres,
+                     'analysed shots':self.analysed_shots,
+                     }
         
         udfs.pickler(file_name, to_pickle)
          
@@ -321,19 +326,31 @@ def halfway_point(parameters):
 if __name__ == '__main__':
     
     # Create adq_14 object with given bins and fuel configuration
-    adq_14 = Adq14(tof_edges = np.arange(10.5, 70.5, 1), 
+    adq_14 = Adq14(tof_edges = np.arange(9.5, 69.5, 1), 
                     fuel_config = 'TT')
     
     file_name = f'../data/parsed_data/adq14_{adq_14.fuel_config}.pickle'
     if os.path.isfile(file_name):
         data = udfs.unpickle(file_name)
-        adq_14.s1_q = data['s1 charge']
-        adq_14.s1_charge_centres = data['s1 bin centres']
-        adq_14.s2_q = data['s2 charge']   
-        adq_14.s2_charge_centres = data['s2 bin centres']
+        # S1
+        adq_14.s1_q              = data['s1 charge']
+        adq_14.s1_charge_centres = data['s1 charge centres']
+        adq_14.s1_charge_edges   = data['s1 charge edges']
+        
+        # S2
+        adq_14.s2_q              = data['s2 charge']   
+        adq_14.s2_charge_centres = data['s2 charge centres']
+        adq_14.s2_charge_edges   = data['s2 charge edges']
+        
+        # TOF
+        adq_14.tof_centres = data['tof centres']
+        adq_14.tof_edges   = data['tof edges']
+        
     else:
         # Get all file names
         path = '../data/adq14/'
+        ans = input('Are bin widths set correctly? [y/n]')
+        if ans not in ['y', 'Y']: sys.exit()
         files = os.listdir(path)
         adq14_files = [f'{path}{shot}' for shot in files]
    
@@ -344,9 +361,9 @@ if __name__ == '__main__':
         adq_14.save_data(file_name)
     
     # Plot
-    # adq_14.combined_plot('S1_05', 'S2_01')
-    # adq_14.individual_plot('S1_05', 'S2_06', 60, 69, log = True)
-    params = adq_14.fit_s1_dt('S1_05', 'S2_06')
+    adq_14.combined_plot('S1_05', 'S2_01')
+    # adq_14.individual_plot('S1_05', 'S2_06', 25, 30, log = True)
+    # params = adq_14.fit_s1_dt('S1_05', 'S2_06')
     # params = adq_14.fit_s1_dd('S1_05', 'S2_06')    
     # params = adq_14.fit_2500('S1_05', 'S2_06')
 
