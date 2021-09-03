@@ -74,9 +74,7 @@ class Adq14():
         else: return 'Unknown'
         
 
-        
     def slice_tof(self, times, charge, s1, s2):
-        # sliced_charges  = np.zeros(len(tof_edges) - 1)
         for i, (low_edge, high_edge) in enumerate(zip(self.tof_edges[:-1], self.tof_edges[1:])):
             # Find charges within tof slice
             mask = ((times > low_edge) & (times < high_edge))
@@ -151,34 +149,44 @@ class Adq14():
     def fit_s1_dt(self, s1, s2):
         start = np.where(self.tof_centres == 25)[0][0]
         end = np.where(self.tof_centres == 28)[0][0]
-        fit_ranges = np.array([[2E5, 4.2E5], [1E5, 4.2E5], [1.4E5, 4.2E5], [1.15E5, 4.2E5]])
+        fit_ranges = np.array([[1E5, 3.9E5], [1E5, 4.2E5], [0.4E5, 3E5], [0.8E5, 4.2E5]])
+        mu_init = [3.2E5, 1.7E5, 1.6E5, 1.5E5]
+        sigma_init = [50000, 100000, 100000, 100000]
         params = np.array([])
         for i, time in enumerate(range(start, end + 1)):
-            y = self.s1_q[s1][s2][time] 
+            # Sum all S2's
+            y = np.zeros(np.shape(self.s1_q[s1]['S2_01'][0]))
+            for key in self.s1_q[s1]:
+                y += self.s1_q[s1][key][time]
             x = self.s1_charge_centres
             
-            mu_0 = 1.7E5
-            sigma_0 = 100000
+            # Initial guesses
+            mu_0 = mu_init[i]
+            sigma_0 = sigma_init[i]
             skew_0 = 10
             bgr_0 = 1
             amplitude_0 = np.max(y)
+            
+            # Fit
             parameters = optimize.minimize(fun = optimization, 
                                            x0 = [mu_0, sigma_0, skew_0, amplitude_0, bgr_0], 
                                            args = (x, y, fit_ranges[i]),
                                            bounds = ((None, None), (None, None), (None, None), (None, None), (0, 2)))
-            fig, ax = plt.subplots()
-            plot_sx(x, y, s1, ax, log = False)
-            mu, sigma, skew, amplitude, background = return_parameters(parameters.x)
             
+            # Plot spectrum
+            fig, ax = plt.subplots()
+            ax.set_title(f't = {self.tof_centres[time]} ns')
+            plot_sx(x, y, s1, ax, log = False)
+            
+            # Plot fit
+            mu, sigma, skew, amplitude, background = return_parameters(parameters.x)
             ax.plot(x, skew_normal(mu, sigma, skew, amplitude, background, x))
+            
+            # Add halfway line
             halfway = halfway_point(parameters)
             ax.axvline(halfway, linestyle = '--', color = 'k')
             
-            print()
-            print('----------')
-            print(parameters)
-            print(f'  halfway: {halfway:.2f}')
-            print()
+            self.print_parameters(self.tof_centres[time], parameters, halfway)
             params = np.append(params, parameters)
         return params
 
@@ -191,6 +199,7 @@ class Adq14():
             y = self.s1_q[s1][s2][time] 
             x = self.s1_charge_centres
             
+            # Initial guesses
             mu_0 = 1.7E4
             sigma_0 = 1000
             skew_0 = 7
@@ -203,24 +212,25 @@ class Adq14():
             fig, ax = plt.subplots()
             plot_sx(x, y, s1, ax, log = False)
             mu, sigma, skew, amplitude, background = return_parameters(parameters.x)
-            
             ax.plot(x, skew_normal(mu, sigma, skew, amplitude, background, x))
             halfway = halfway_point(parameters)
             ax.axvline(halfway, linestyle = '--', color = 'k')
-            
-            print(f'i = {time}, nit = {parameters.nit}')
-            print('----------')
-            print(f'chi2:    {parameters.fun}')
-            print(f'mu:      {parameters.x[0]}')
-            print(f'sigma:   {parameters.x[1]}')
-            print(f'skew:    {parameters.x[2]}')
-            print(f'ampl.:   {parameters.x[3]}')
-            print(f'backgr.: {parameters.x[4]}')
-            
-            print(f'  halfway: {halfway:.2f}')
-            print()
+            self.print_parameters(self.tof_centres[time], parameters, halfway)
             params = np.append(params, parameters)
         return params
+
+    def print_parameters(self, time, parameters, halfway):
+        print(f't = {time} ns, nit = {parameters.nit}')
+        print('----------')
+        print(f'chi2:    {parameters.fun:.2f}')
+        print(f'mu:      {parameters.x[0]:.1f}')
+        print(f'sigma:   {parameters.x[1]:.1f}')
+        print(f'skew:    {parameters.x[2]:.1f}')
+        print(f'ampl.:   {parameters.x[3]:.1f}')
+        print(f'backgr.: {parameters.x[4]:.1f}')
+        print(f'halfway: {halfway:.1f}')
+        print()
+        
 
     def fit_2500(self, s1, s2):
         '''
@@ -240,7 +250,6 @@ class Adq14():
         # Edge chosen by eye
         ax.axvline(143000, linestyle = '--', color = 'k')
         
-        return None
 
 
 def return_parameters(parameters):
@@ -361,9 +370,9 @@ if __name__ == '__main__':
         adq_14.save_data(file_name)
     
     # Plot
-    adq_14.combined_plot('S1_05', 'S2_01')
+    # adq_14.combined_plot('S1_05', 'S2_01')
     # adq_14.individual_plot('S1_05', 'S2_06', 25, 30, log = True)
-    # params = adq_14.fit_s1_dt('S1_05', 'S2_06')
+    params = adq_14.fit_s1_dt('S1_05', 'S2_06')
     # params = adq_14.fit_s1_dd('S1_05', 'S2_06')    
     # params = adq_14.fit_2500('S1_05', 'S2_06')
 
