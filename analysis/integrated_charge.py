@@ -146,10 +146,10 @@ class Adq14():
         
         udfs.pickler(file_name, to_pickle)
          
-    def fit_s1_dt(self, s1, s2):
+    def fit_s1_dt(self, s1):
         start = np.where(self.tof_centres == 25)[0][0]
         end = np.where(self.tof_centres == 28)[0][0]
-        fit_ranges = np.array([[1E5, 3.9E5], [1E5, 4.2E5], [0.4E5, 3E5], [0.8E5, 4.2E5]])
+        fit_ranges = np.array([[2.5E5, 4.88E5], [1E5, 4E5], [1E5, 2.2E5], [1E5, 1.9E5]])
         mu_init = [3.2E5, 1.7E5, 1.6E5, 1.5E5]
         sigma_init = [50000, 100000, 100000, 100000]
         params = np.array([])
@@ -171,7 +171,7 @@ class Adq14():
             parameters = optimize.minimize(fun = optimization, 
                                            x0 = [mu_0, sigma_0, skew_0, amplitude_0, bgr_0], 
                                            args = (x, y, fit_ranges[i]),
-                                           bounds = ((None, None), (None, None), (None, None), (None, None), (0, 2)))
+                                           bounds = ((None, None), (None, None), (None, None), (0, None), (0, 2)))
             
             # Plot spectrum
             fig, ax = plt.subplots()
@@ -215,6 +215,8 @@ class Adq14():
             ax.plot(x, skew_normal(mu, sigma, skew, amplitude, background, x))
             halfway = halfway_point(parameters)
             ax.axvline(halfway, linestyle = '--', color = 'k')
+            plt.xlim(0, 100000)
+            ax.set_title(f't = {self.tof_centres[time]} ns')
             self.print_parameters(self.tof_centres[time], parameters, halfway)
             params = np.append(params, parameters)
         return params
@@ -336,7 +338,7 @@ if __name__ == '__main__':
     
     # Create adq_14 object with given bins and fuel configuration
     adq_14 = Adq14(tof_edges = np.arange(9.5, 69.5, 1), 
-                    fuel_config = 'TT')
+                    fuel_config = 'DD')
     
     file_name = f'../data/parsed_data/adq14_{adq_14.fuel_config}.pickle'
     if os.path.isfile(file_name):
@@ -372,9 +374,9 @@ if __name__ == '__main__':
     # Plot
     # adq_14.combined_plot('S1_05', 'S2_01')
     # adq_14.individual_plot('S1_05', 'S2_06', 25, 30, log = True)
-    params = adq_14.fit_s1_dt('S1_05', 'S2_06')
+    # params = adq_14.fit_s1_dt('S1_05')
     # params = adq_14.fit_s1_dd('S1_05', 'S2_06')    
-    # params = adq_14.fit_2500('S1_05', 'S2_06')
+    params = adq_14.fit_2500('S1_05', 'S2_06')
 
 
 
