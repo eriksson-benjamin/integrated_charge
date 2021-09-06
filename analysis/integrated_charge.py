@@ -117,15 +117,30 @@ class Adq14():
             fig.suptitle(f'{self.tof_centres[i]} ns')
             
             # S1 plot
+            if s2 == 'S2':
+                # Sum all S2's
+                y_s1 = np.zeros(np.shape(self.s1_q[s1]['S2_01'][0]))
+                for key in self.s1_q[s1]:
+                    y_s1 += self.s1_q[s1][key][i]
+            else:
+                y_s1 = self.s1_q[s1][s2][i]
             plot_sx(charge_centres = self.s1_charge_centres, 
-                    q = self.s1_q[s1][s2][i], 
+                    q = y_s1, 
                     ax = s1_ax, 
                     log = log,
                     sx = s1)
             
             # S2 plot
+            if s2 == 'S2':
+                # Sum all S2's
+                y_s2 = np.zeros(np.shape(self.s2_q[s1]['S2_01'][0]))
+                for key in self.s2_q[s1]:
+                    y_s2 += self.s2_q[s1][key][i]
+            else:
+                y_s2 = self.s2_q[s1][s2][i]
+                    
             plot_sx(charge_centres = self.s2_charge_centres, 
-                    q = self.s2_q[s1][s2][i], 
+                    q = y_s2, 
                     ax = s2_ax, 
                     log = log,
                     sx = s2)
@@ -338,7 +353,7 @@ if __name__ == '__main__':
     
     # Create adq_14 object with given bins and fuel configuration
     adq_14 = Adq14(tof_edges = np.arange(9.5, 69.5, 1), 
-                    fuel_config = 'DD')
+                    fuel_config = 'TT')
     
     file_name = f'../data/parsed_data/adq14_{adq_14.fuel_config}.pickle'
     if os.path.isfile(file_name):
@@ -373,10 +388,10 @@ if __name__ == '__main__':
     
     # Plot
     # adq_14.combined_plot('S1_05', 'S2_01')
-    # adq_14.individual_plot('S1_05', 'S2_06', 25, 30, log = True)
-    # params = adq_14.fit_s1_dt('S1_05')
+    adq_14.individual_plot('S1_05', 'S2', 25, 35, log = True)
+    params = adq_14.fit_s1_dt('S1_05')
     # params = adq_14.fit_s1_dd('S1_05', 'S2_06')    
-    params = adq_14.fit_2500('S1_05', 'S2_06')
+    # params = adq_14.fit_2500('S1_05', 'S2_06')
 
 
 
